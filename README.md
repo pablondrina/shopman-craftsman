@@ -1,76 +1,59 @@
 # shopman-craftsman
 
-Production management with recipes and work orders.
+Gestão de produção para Django. Receitas com BOM (Bill of Materials), ordens de produção com lifecycle completo, integração com estoque para materialização automática.
 
 Part of the [Django Shopman](https://github.com/pablondrina/django-shopman) commerce framework.
 
-## Overview
+## Domínio
 
-**Domain:** Produção
-**Namespace:** `shopman.craftsman`
-**Pip package:** `shopman-craftsman`
+- **Recipe** — receita de produção. Lista de insumos (RecipeItem) com quantidades e coeficientes.
+- **RecipeItem** — insumo da receita (SKU + quantidade + coeficiente de rendimento).
+- **WorkOrder** — ordem de produção. Status: PLANNED → IN_PROGRESS → DONE / CANCELLED.
+- **WorkOrderItem** — item da ordem (produto + quantidade planejada/produzida).
+- **WorkOrderEvent** — timeline de eventos da produção (início, pausa, conclusão).
+- **CodeSequence** — geração sequencial de códigos de produção.
 
-### Main Models
+## CraftService
 
-Recipe, WorkOrder, WorkOrderItem, BOM
+| Método | O que faz |
+|--------|-----------|
+| `create_work_order(recipe, qty)` | Cria ordem de produção |
+| `start_work_order(wo_id)` | Inicia produção |
+| `complete_work_order(wo_id, qty_produced)` | Finaliza e registra produção |
+| `suggest_production(sku, qty)` | Sugere produção baseado em estoque + demanda |
+| `get_pending_orders()` | Ordens pendentes e em andamento |
 
-## Installation
+## Contribs
+
+- `craftsman.contrib.demand` — Planejamento de demanda baseado em histórico de vendas.
+- `craftsman.contrib.stocking` — Bridge craftsman↔stockman. Signal `holds_materialized` materializa holds quando produção finaliza.
+- `craftsman.contrib.admin_unfold` — Admin com Unfold theme.
+
+## Signals
+
+- `production_changed(sender, work_order, event_type)` — disparado em mudanças de status da produção.
+
+## Instalação
 
 ```bash
 pip install shopman-craftsman
 ```
 
-## Quick Start
-
 ```python
-# settings.py
 INSTALLED_APPS = [
     "shopman.craftsman",
-    # ...
+    "shopman.craftsman.contrib.demand",    # opcional: demand planning
+    "shopman.craftsman.contrib.stocking",  # opcional: bridge com estoque
 ]
 ```
 
-## Architecture
-
-This package is a **Core app** — it provides domain-specific models, services, and protocols with zero dependencies on other Shopman apps (except `shopman-utils`).
-
-Communication with other apps happens via `typing.Protocol` — no direct imports. The framework layer (`django-shopman`) orchestrates integration between core apps.
-
-## Conventions
-
-- **Monetary values:** `int` in centavos with `_q` suffix (e.g., `price_q = 1050` → R$ 10.50)
-- **Identifiers:** `ref` (not `code`). Exception: `Product.sku`
-- **Inter-app communication:** `typing.Protocol` + adapters, no direct imports
-
 ## Development
 
-This package is developed in the [django-shopman](https://github.com/pablondrina/django-shopman) monorepo under `packages/craftsman/`.
-
 ```bash
-# Clone the monorepo
 git clone https://github.com/pablondrina/django-shopman.git
-cd django-shopman
-
-# Install in editable mode
-pip install -e packages/craftsman
-
-# Run tests
-make test-craftsman
+cd django-shopman && pip install -e packages/craftsman
+make test-craftsman  # ~158 testes
 ```
-
-## Related Packages
-
-| Package | Domain |
-|---------|--------|
-| [django-shopman](https://github.com/pablondrina/django-shopman) | Framework orchestrator |
-| [shopman-utils](https://github.com/pablondrina/shopman-utils) | Shared utilities |
-| [shopman-omniman](https://github.com/pablondrina/shopman-omniman) | Orders |
-| [shopman-stockman](https://github.com/pablondrina/shopman-stockman) | Inventory |
-| [shopman-craftsman](https://github.com/pablondrina/shopman-craftsman) | Production |
-| [shopman-offerman](https://github.com/pablondrina/shopman-offerman) | Catalog |
-| [shopman-guestman](https://github.com/pablondrina/shopman-guestman) | CRM |
-| [shopman-doorman](https://github.com/pablondrina/shopman-doorman) | Auth |
-| [shopman-payman](https://github.com/pablondrina/shopman-payman) | Payments |
 
 ## License
 
